@@ -19,5 +19,6 @@ typedef struct {
 memtable* memtable_new(size_t size);
 memtable_res memtable_insert(memtable *mt, const char *key, const char *value);
 memtable_res memtable_get(memtable *mt, const char *key, char **value);
+void memtable_free(memtable *mt);
 
 #endif
