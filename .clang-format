@@ -1,4 +1,5 @@
 BasedOnStyle: WebKit
+IndentWidth: 2
 AlignAfterOpenBracket: DontAlign
 AlignConsecutiveMacros: AcrossEmptyLines
 AlignConsecutiveAssignments: false
@@ -21,20 +22,7 @@ BinPackParameters: true
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: WebKit
 BreakBeforeTernaryOperators: false
-# TODO: BreakStringLiterals can cause very strange formatting so turn it off?
 BreakStringLiterals: false
-# Prefer:
-# some_var = function(arg1,
-#    arg2)
-# over:
-# some_var =
-#     function(arg1, arg2)
 PenaltyBreakAssignment: 100
-# Prefer:
-# some_long_function(arg1, arg2
-#     arg3)
-# over:
-# some_long_function(
-#     arg1, arg2, arg3)
 PenaltyBreakBeforeFirstCallParameter: 100
 CompactNamespaces: true
