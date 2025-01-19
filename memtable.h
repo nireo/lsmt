@@ -11,9 +11,11 @@ typedef enum {
   MEMTABLE_FAILED,
 } memtable_res;
 
-typedef struct {
+typedef struct memtable_s {
   bloom_filter* bloom_filter; // we can have this to speed up look ups.
   skiplist* skiplist;
+  size_t taken_size;
+  struct memtable_s *next;
 } memtable;
 
 memtable* memtable_new(size_t size);

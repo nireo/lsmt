@@ -13,6 +13,8 @@ memtable_new(size_t size)
 
   mt->bloom_filter = bloom_filter_new_default(size);
   mt->skiplist = skiplist_new();
+  mt->taken_size = 0;
+  mt->next = NULL;
 
   return mt;
 }
@@ -20,10 +22,12 @@ memtable_new(size_t size)
 memtable_res
 memtable_insert(memtable* mt, const char* key, const char* value)
 {
+  // TODO: handle proper add to size of memtable for keys that are updated.
   if (bloom_filter_test_str(mt->bloom_filter, key)) {
-     skiplist_remove(mt->skiplist, key);
+    skiplist_remove(mt->skiplist, key);
   }
 
+  mt->taken_size += 4 + strlen(key) + strlen(value); // 4 bytes for 2 uint16_t representing key and value lengths
   bloom_filter_put_str(mt->bloom_filter, key);
   skiplist_insert(mt->skiplist, key, value);
 
