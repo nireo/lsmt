@@ -18,6 +18,7 @@ hash_djb2(const void* buff, size_t length)
   }
   return hash;
 }
+
 uint32_t
 hash_sdbm(const void* buff, size_t length)
 {
