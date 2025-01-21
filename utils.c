@@ -1,6 +1,8 @@
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 
 // bit_vec allocates a new bit vector
 bit_vec*
@@ -64,4 +66,23 @@ bit_vec_set(bit_vec* vec, size_t bit_idx, bool val)
   } else {
     *byte &= ~(1 << bit_offset);
   }
+}
+
+bool dir_exists(const char *path) {
+  struct stat stats;
+
+  if (stat(path, &stats) == 0 && S_ISDIR(stats.st_mode)) {
+    return 1;
+  }
+
+  return 0;
+}
+
+const char *get_file_ext(const char *filename) {
+  const char *dot = strchr(filename, '.');
+  if (!dot || dot == filename) {
+    return "";
+  }
+
+  return dot + 1;
 }
