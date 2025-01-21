@@ -1,7 +1,10 @@
 #include "memtable.h"
 #include "bloom.h"
 #include "skiplist.h"
+#include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 memtable*
 memtable_new(size_t size)
@@ -54,3 +57,102 @@ memtable_free(memtable* mt)
   skiplist_delete(mt->skiplist);
   free(mt);
 }
+
+#define WAL_PUT     1
+#define WAL_DELETE  2
+
+#define WAL_MAGIC   0x57CCCC48
+#define WAL_VERSION 1
+
+wal*
+wal_open(const char* fname)
+{
+  wal* wl = calloc(1, sizeof(wal));
+  if (!wl) {
+    return NULL;
+  }
+  wl->filename = strdup(fname);
+  wl->seq = 1;
+
+  wl->fd = open(fname, O_RDWR, O_CREAT, 0644);
+  if (wl->fd < 0) {
+    free(wl->filename);
+    free(wl);
+    return NULL;
+  }
+
+  if (lseek(wl->fd, 0, SEEK_END) == 0) {
+    wal_header header = {
+      .magic = WAL_MAGIC,
+      .version = WAL_VERSION,
+      .seq = wl->seq
+    };
+
+    if (write(wl->fd, &header, sizeof(header)) != sizeof(header)) {
+      close(wl->fd);
+      free(wl->filename);
+      free(wl);
+      return NULL;
+    }
+  }
+
+  return wl;
+}
+
+int
+wal_put(wal* wl, const char* key, uint16_t keysize, const char* value, uint32_t valsize)
+{
+  wal_entry_header header = {
+    .type = WAL_PUT,
+    .key_size = keysize,
+    .value_size = valsize,
+    .checksum = 0,
+  };
+  // TODO: calculate crc
+
+  if (write(wl->fd, &header, sizeof(header)) != sizeof(header)) {
+    return 1;
+  }
+
+  if (write(wl->fd, value, valsize) != valsize) {
+    return 1;
+  }
+  fsync(wl->fd);
+  wl->seq++;
+
+  return 0;
+}
+
+int
+wal_delete(wal* wl, const char* key, uint16_t keysize)
+{
+  wal_entry_header header = {
+    .type = WAL_DELETE,
+    .key_size = keysize,
+    .value_size = 0,
+    .checksum = 0,
+  };
+
+  if (write(wl->fd, &header, sizeof(header)) != sizeof(header)) {
+    return 1;
+  }
+
+  if (write(wl->fd, &key, keysize) != keysize) {
+    return 1;
+  }
+
+  fsync(wl->fd);
+  wl->seq++;
+  return 0;
+}
+
+void wal_close(wal *wl) {
+  if (wl) {
+    if (wl->fd >= 0) {
+      close(wl->fd);
+    }
+    free(wl->filename);
+    free(wl);
+  }
+}
+
