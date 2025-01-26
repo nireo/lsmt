@@ -68,7 +68,9 @@ bit_vec_set(bit_vec* vec, size_t bit_idx, bool val)
   }
 }
 
-bool dir_exists(const char *path) {
+bool
+dir_exists(const char* path)
+{
   struct stat stats;
 
   if (stat(path, &stats) == 0 && S_ISDIR(stats.st_mode)) {
@@ -78,8 +80,10 @@ bool dir_exists(const char *path) {
   return 0;
 }
 
-const char *get_file_ext(const char *filename) {
-  const char *dot = strchr(filename, '.');
+const char*
+get_file_ext(const char* filename)
+{
+  const char* dot = strchr(filename, '.');
   if (!dot || dot == filename) {
     return "";
   }

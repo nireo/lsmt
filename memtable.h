@@ -5,23 +5,30 @@
 #include "skiplist.h"
 #include "utils.h"
 
-// TODO: make this better 
+// TODO: make this better
 typedef enum {
   MEMTABLE_OK,
   MEMTABLE_FAILED,
 } memtable_res;
 
+typedef struct wal_s {
+  int fd;
+  char* filename;
+  uint64_t seq;
+} wal;
+
 typedef struct memtable_s {
   bloom_filter* bloom_filter; // we can have this to speed up look ups.
   skiplist* skiplist;
   size_t taken_size;
-  struct memtable_s *next;
+  struct memtable_s* next;
+  wal* wal;
 } memtable;
 
 memtable* memtable_new(size_t size);
-memtable_res memtable_insert(memtable *mt, const char *key, const char *value);
-memtable_res memtable_get(memtable *mt, const char *key, char **value);
-void memtable_free(memtable *mt);
+memtable_res memtable_insert(memtable* mt, const char* key, const char* value);
+memtable_res memtable_get(memtable* mt, const char* key, char** value);
+void memtable_free(memtable* mt);
 
 typedef struct wal_entry_header_s {
   uint32_t type;
@@ -36,15 +43,11 @@ typedef struct wal_header_s {
   uint64_t seq;
 } wal_header;
 
-typedef struct wal_s {
-  int fd;
-  char *filename;
-  uint64_t seq;
-} wal;
-
-wal *wal_open(const char *filename);
-int wal_put(wal *wl, const char *key, uint16_t key_size, const char *value, uint32_t value_size);
-int wal_delete(wal *wl, const char *key, uint16_t key_size);
-void wal_close(wal *wl);
+wal* wal_open(char* filename);
+int wal_put(wal* wl, const char* key, uint16_t key_size, const char* value, uint32_t value_size);
+int wal_delete(wal* wl, const char* key, uint16_t key_size);
+void wal_close(wal* wl);
+memtable* memtable_new_dir(size_t size, char* dir_path);
+memtable* memtable_recover_from_wal(size_t size, const char* wal_path);
 
 #endif

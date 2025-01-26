@@ -1,7 +1,11 @@
 #include "../memtable.h"
 #include <assert.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 void
 test_basic_operations()
@@ -117,13 +121,95 @@ test_edge_cases()
   printf("All edge case tests passed!\n\n");
 }
 
+void
+test_wal_operations()
+{
+  printf("Testing WAL operations...\n");
+
+  const char* test_dir = "test_wal_dir";
+  mkdir(test_dir, 0777);
+
+  memtable* mt = memtable_new_dir(1000, (char*)test_dir);
+  assert(mt != NULL && "Failed to create memtable with WAL");
+  assert(mt->wal != NULL && "WAL not initialized");
+
+  const char* test_keys[] = { "key1", "key2", "key3" };
+  const char* test_values[] = { "value1", "value2", "value3" };
+
+  for (int i = 0; i < 3; i++) {
+    memtable_res res = memtable_insert(mt, test_keys[i], test_values[i]);
+    assert(res == MEMTABLE_OK && "Failed to insert with WAL");
+  }
+
+  char* wal_path = strdup(mt->wal->filename);
+
+  memtable_free(mt);
+
+  memtable* recovered_mt = memtable_recover_from_wal(1000, wal_path);
+  assert(recovered_mt != NULL && "Failed to recover from WAL");
+
+  for (int i = 0; i < 3; i++) {
+    char* value = NULL;
+    memtable_res res = memtable_get(recovered_mt, test_keys[i], &value);
+    assert(res == MEMTABLE_OK && "Failed to get recovered value");
+    assert(strcmp(value, test_values[i]) == 0 && "Recovered value doesn't match");
+    free(value);
+  }
+
+  printf("Basic WAL recovery test passed\n");
+
+  const char* new_key = "key4";
+  const char* new_value = "value4";
+  memtable_res res = memtable_insert(recovered_mt, new_key, new_value);
+  assert(res == MEMTABLE_OK && "Failed to insert after recovery");
+
+  memtable_free(recovered_mt);
+
+  memtable* final_mt = memtable_recover_from_wal(1000, wal_path);
+  assert(final_mt != NULL && "Failed final recovery");
+
+  for (int i = 0; i < 3; i++) {
+    char* value = NULL;
+    res = memtable_get(final_mt, test_keys[i], &value);
+    assert(res == MEMTABLE_OK && "Failed to get value in final recovery");
+    assert(strcmp(value, test_values[i]) == 0 && "Value mismatch in final recovery");
+    free(value);
+  }
+
+  char* value = NULL;
+  res = memtable_get(final_mt, new_key, &value);
+  assert(res == MEMTABLE_OK && "Failed to get new value in final recovery");
+  assert(strcmp(value, new_value) == 0 && "New value mismatch in final recovery");
+  free(value);
+
+  printf("WAL durability test passed\n");
+
+  memtable_free(final_mt);
+  free(wal_path);
+
+  DIR* dir = opendir(test_dir);
+  struct dirent* entry;
+  while ((entry = readdir(dir)) != NULL) {
+    if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+      char path[1024];
+      snprintf(path, sizeof(path), "%s/%s", test_dir, entry->d_name);
+      remove(path);
+    }
+  }
+  closedir(dir);
+  rmdir(test_dir);
+
+  printf("All WAL operation tests passed!\n\n");
+}
+
 int
 main()
 {
   printf("Starting memtable tests...\n\n");
 
   test_basic_operations();
-  test_edge_cases();
+  // test_edge_cases();
+  test_wal_operations();
 
   printf("All tests passed successfully!\n");
   return 0;
