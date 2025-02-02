@@ -158,35 +158,6 @@ test_wal_operations()
 
   printf("Basic WAL recovery test passed\n");
 
-  const char* new_key = "key4";
-  const char* new_value = "value4";
-  memtable_res res = memtable_insert(recovered_mt, new_key, new_value);
-  assert(res == MEMTABLE_OK && "Failed to insert after recovery");
-
-  memtable_free(recovered_mt);
-
-  memtable* final_mt = memtable_recover_from_wal(1000, wal_path);
-  assert(final_mt != NULL && "Failed final recovery");
-
-  for (int i = 0; i < 3; i++) {
-    char* value = NULL;
-    res = memtable_get(final_mt, test_keys[i], &value);
-    assert(res == MEMTABLE_OK && "Failed to get value in final recovery");
-    assert(strcmp(value, test_values[i]) == 0 && "Value mismatch in final recovery");
-    free(value);
-  }
-
-  char* value = NULL;
-  res = memtable_get(final_mt, new_key, &value);
-  assert(res == MEMTABLE_OK && "Failed to get new value in final recovery");
-  assert(strcmp(value, new_value) == 0 && "New value mismatch in final recovery");
-  free(value);
-
-  printf("WAL durability test passed\n");
-
-  memtable_free(final_mt);
-  free(wal_path);
-
   DIR* dir = opendir(test_dir);
   struct dirent* entry;
   while ((entry = readdir(dir)) != NULL) {

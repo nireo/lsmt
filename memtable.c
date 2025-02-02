@@ -148,6 +148,10 @@ wal_put(wal* wl, const char* key, uint16_t keysize, const char* value, uint32_t 
     return 1;
   }
 
+  if (write(wl->fd, key, keysize) != keysize) {
+    return 1;
+  }
+
   if (write(wl->fd, value, valsize) != valsize) {
     return 1;
   }
